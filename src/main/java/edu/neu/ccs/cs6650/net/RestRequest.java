@@ -104,7 +104,7 @@ public class RestRequest {
   }
 
   public RestResponse doPost() throws IOException {
-    return send("POST", address, connectionTimeout, readTimeout);
+    return send("POST", address+"?"+body, connectionTimeout, readTimeout);
   }
 
   public RestResponse doPut() throws IOException {

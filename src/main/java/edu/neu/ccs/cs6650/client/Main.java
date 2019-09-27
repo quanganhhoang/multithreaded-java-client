@@ -12,15 +12,15 @@ public class Main {
   private static final Logger logger = LogManager.getLogger(Main.class.getName());
 
 //  private static final StopWatch sw = new StopWatch();
-  private static final Integer DAY_LENGTH_MIN = 420; // each ski day is of length 420 minutes
+//  private static final Integer DAY_LENGTH_MIN = 420; // each ski day is of length 420 minutes
 
 
   private static final int MIN_NUM_LIFTS = 5;
   private static final int MAX_NUM_LIFTS = 60;
 
   public static void main(String[] args) {
-    Integer numThreads = 256;
-    Integer numSkiers = 50000; // effectively the skier's ID
+    Integer numThreads = 64; // max = 256
+    Integer numSkiers = 1000; // effectively the skier's ID | max = 50000
     Integer numSkiLifts = 40; // default 40, range 5-60
     Integer numRuns = 10; // numRuns: default 10, max 20
 
@@ -36,9 +36,15 @@ public class Main {
       port = args[5];
     }
 
+    logger.info("Number of threads: " + numThreads);
+    logger.info("Number of skiers: " + numSkiers);
+    logger.info("Number of ski lifts: " + numSkiLifts);
+    logger.info("Average number of runs per skier: " + numRuns);
+    logger.info("Program starting...");
+
     MultithreadedClient client = new MultithreadedClient(numThreads, numSkiers, numSkiLifts, numRuns, ipAddress, port);
 
-    client.runPhase1();
+    client.run(1);
   }
 
 

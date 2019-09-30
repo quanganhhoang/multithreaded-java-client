@@ -1,15 +1,23 @@
 package edu.neu.ccs.cs6650.client;
 
-import edu.neu.ccs.cs6650.client.RequestThread;
+import edu.neu.ccs.cs6650.model.LatencyStat;
+import edu.neu.ccs.cs6650.model.ThreadStat;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-
-public class MultithreadedClient {
+@SuppressWarnings("Duplicates")
+public class MultithreadedCallable {
   private static final Logger logger = LogManager.getLogger(Main.class.getName());
 
   private static final int MIN_JITTER_TIME = 250;             // milliseconds
@@ -31,7 +39,11 @@ public class MultithreadedClient {
   private String ipAddress = "";
   private String port = "";
 
-  public MultithreadedClient(Integer numThreads, Integer numSkiers, Integer numSkiLifts, Integer numRuns,
+  private AtomicInteger totalRequestSuccess = new AtomicInteger(0);
+  private AtomicInteger totalRequestFail = new AtomicInteger(0);
+  private List<LatencyStat> latencyStats = new ArrayList<>();
+
+  public MultithreadedCallable(Integer numThreads, Integer numSkiers, Integer numSkiLifts, Integer numRuns,
       String ipAddress, String port) {
     this.numThreads = numThreads;
     this.numSkiers = numSkiers;
@@ -44,14 +56,15 @@ public class MultithreadedClient {
   public void run(int phase) {
     logger.info("Starting phase " + phase + "...");
     logger.info("====================================");
+
     // calculate number of threads to run for each phase
     int numPoolThreads = getNumThreads(numThreads, phase);
-
-    if (numSkiers % numPoolThreads != 0) numPoolThreads++;
+    System.out.println("num pool threads: " + numPoolThreads);
+    int skierIdRangePerThread = (int) Math.ceil(numSkiers * 1.0 / numPoolThreads);
 
     ExecutorService executor = Executors.newFixedThreadPool(numPoolThreads);
-    int numThreadTrigger = numPoolThreads / 10; // num of completed threads to trigger next phase
-    CountDownLatch countDownLatch = new CountDownLatch(numThreadTrigger);
+    // num of completed threads to trigger next phase
+    CountDownLatch countDownLatch = new CountDownLatch(numPoolThreads / 10);
 
     int threadCount = 0, startSkierID = 1, remainingNumIds = numSkiers;
 
@@ -59,24 +72,36 @@ public class MultithreadedClient {
     int endTime = getStartEndTimeByPhase(phase, false);
 
     int numRequestPerThread = getNumRequestPerThread(numPoolThreads, phase);
+    System.out.println("Num skiers per thread: " + skierIdRangePerThread);
 
-    Runnable thread;
+    Callable thread;
     for (int i = 0; i < numPoolThreads; i++) {
       String name = "Thread #" + threadCount;
-      int range = Math.min(numRequestPerThread, remainingNumIds);
+//      System.out.println("startSkierId: " + startSkierID);
+//      System.out.println("remaining: " + remainingNumIds);
+      int range = Math.min(skierIdRangePerThread, remainingNumIds);
       ThreadInfo info = new ThreadInfo(name, ipAddress, port, startSkierID, startSkierID + range,
-          PHASE1_START_TIME, PHASE2_END_TIME, numRuns, numSkiLifts, numRequestPerThread);
+          startTime, endTime, numRuns, numSkiLifts, numRequestPerThread);
 
-      thread = new RequestThread(phase, info, countDownLatch);
+      thread = new RequestCallable(phase, info, countDownLatch);
 
       threadCount++;
-      remainingNumIds -= numRequestPerThread;
-      startSkierID += numThreads;
+      remainingNumIds -= range;
+      startSkierID += range;
 
-      executor.execute(thread);
+      Future<ThreadStat> future = executor.submit(thread);
+      try {
+        totalRequestSuccess.addAndGet(future.get().getNumRequestSuccess());
+        totalRequestFail.addAndGet(future.get().getNumRequestFail());
+        // how to concatenate all latency result here!?!?
+        latencyStats.addAll(future.get().getStatList());
+      } catch (InterruptedException | ExecutionException e) {
+        logger.error("ERROR: Exception returning number of request sent.");
+        logger.error(e);
+      }
     }
 
-    logger.info("Spawned threads for phase " + phase);
+    logger.info(threadCount + " threads spawned for phase " + phase);
 
     try {
       countDownLatch.await();
@@ -108,6 +133,7 @@ public class MultithreadedClient {
 //    logger.info("Done!");
   }
 
+
   public int getStartEndTimeByPhase(int phase, boolean isStart) throws IllegalArgumentException {
     switch (phase) {
       case 1:
@@ -125,7 +151,7 @@ public class MultithreadedClient {
     switch (phase) {
       case 1:
       case 3:
-        return numThreads / 4;
+        return (int) Math.ceil(numThreads / 4.0);
       case 2:
         return numThreads;
       default:
@@ -143,5 +169,17 @@ public class MultithreadedClient {
       default:
         throw new IllegalArgumentException();
     }
+  }
+
+  public AtomicInteger getTotalRequestFail() {
+    return totalRequestFail;
+  }
+
+  public AtomicInteger getTotalRequestSuccess() {
+    return totalRequestSuccess;
+  }
+
+  public List<LatencyStat> getLatencyStats() {
+    return latencyStats;
   }
 }

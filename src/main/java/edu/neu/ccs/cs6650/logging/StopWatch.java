@@ -17,7 +17,7 @@ public class StopWatch {
   }
 
   public void start() {
-    namedSplits = new LinkedHashMap<String, Timing>();   // LinkedHashMap keeps items in the order in which they were inserted
+    namedSplits = new LinkedHashMap<>();   // LinkedHashMap keeps items in the order in which they were inserted
     startTime = now();
     splitTime = startTime;
     namedSplits.put("Started", timing());

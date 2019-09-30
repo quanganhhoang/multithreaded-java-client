@@ -20,8 +20,8 @@ import java.util.zip.GZIPInputStream;
 
 public class RestRequest {
 
-  private static final int CONNECTION_TIMEOUT_DEFAULT = 1000; // ms
-  private static final int READ_TIMEOUT_DEFAULT = 10000; // ms
+  private static final int CONNECTION_TIMEOUT_DEFAULT = 20000; // ms
+  private static final int READ_TIMEOUT_DEFAULT = 20000; // ms
 
   private String address;
   private Map<String, String> headers;
@@ -162,6 +162,7 @@ public class RestRequest {
         inStream = new GZIPInputStream(inStream);
       }
 
+      if (inStream == null) return null;
       byte[] responseBytes = readFully(inStream);
 
       response = new RestResponse(this,

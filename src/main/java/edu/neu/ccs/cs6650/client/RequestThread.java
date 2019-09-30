@@ -13,7 +13,7 @@ public class RequestThread implements Runnable {
   private static final boolean IS_LOCAL = true;
 
   private static final String API_ENDPOINT =
-      IS_LOCAL ? "http://localhost:8080/skier-api"
+      IS_LOCAL ? "http://localhost:8080/skier-api/"
                : "http://ec2-54-234-184-116.compute-1.amazonaws.com:8080/cs6650";
 
   private int numPhase;
@@ -28,24 +28,36 @@ public class RequestThread implements Runnable {
 
   @Override
   public void run() {
-    int rangeStart = info.getStartSkierId(), rangeEnd = info.getEndSkierId();
-    int numPostRequests = info.getNumRuns() / 10 *  (rangeEnd - rangeStart);
+    int rangeIdStart = info.getStartSkierId(), rangeIdEnd = info.getEndSkierId();
 
     Random rand = new Random();
+    int resortId = 1;
+    int seasonId = 2019;
+    int dayId = 25;
 
-    for (int i = 0; i < numPostRequests; i++) {
-//      int skierId = rand.nextInt(rangeEnd - rangeStart) + rangeStart;
-//      int liftId = rand.nextInt()
+    for (int i = 0, n = info.getNumRequest(); i < n; i++) {
+      int skierId = rand.nextInt(rangeIdEnd - rangeIdStart) + rangeIdStart;
+      int liftId = rand.nextInt(info.getNumLifts());
+      int time = info.getStartTime() + rand.nextInt(info.getEndTime() - info.getStartTime());
 
-      sendDummyGetRequest();
+      sendDummyGetRequest(resortId, seasonId, dayId, skierId, time, liftId);
     }
 
     // finished work
     countDownLatch.countDown();
   }
 
-  public void sendDummyGetRequest() {
-    String url = API_ENDPOINT + "/resorts";
+  public void sendDummyGetRequest(int resortId, int seasonId, int dayId, int skierId, int time, int liftId) {
+    StringBuilder sb = new StringBuilder(API_ENDPOINT);
+      sb.append("skiers/");
+      sb.append(resortId);
+      sb.append("/seasons/");
+      sb.append(seasonId);
+      sb.append("/days/");
+      sb.append(dayId);
+      sb.append("/skiers/");
+      sb.append(skierId);
+    String url = sb.toString();
 
     RestResponse response = null;
     try {
@@ -57,12 +69,15 @@ public class RequestThread implements Runnable {
           .addHeader("Accept", "application/json")
           .addHeader("Connection", "keep-alive")
           .addHeader("Content-Type", "application/json;charset=UTF-8")
-          .doGet();
+          .addField("time", String.valueOf(time))
+          .addField("liftID", String.valueOf(liftId))
+          .doPost();
+
     } catch (IOException e) {
       logger.error("Failed to call API");
     }
 
-    String json = response.getBody();
+    String json = response == null ? "" : response.getBody();
     System.out.println(this.numPhase + ": " + json);
   }
 

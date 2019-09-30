@@ -10,9 +10,10 @@ public class ThreadInfo {
   private Integer endTime;
   private Integer numRuns;
   private Integer numLifts;
+  private Integer numRequest;
 
   public ThreadInfo(String name, String ipAddress, String port, Integer startSkierId, Integer endSkierId,
-      Integer startTime, Integer endTime, Integer numRuns, Integer numLifts) {
+      Integer startTime, Integer endTime, Integer numRuns, Integer numLifts, Integer numRequest) {
     this.name = name;
     this.startSkierId = startSkierId;
     this.endSkierId = endSkierId;
@@ -20,6 +21,7 @@ public class ThreadInfo {
     this.endTime = endTime;
     this.numRuns = numRuns;
     this.numLifts = numLifts;
+    this.numRequest = numRequest;
   }
 
   public String getName() {
@@ -56,5 +58,9 @@ public class ThreadInfo {
 
   public Integer getNumLifts() {
     return numLifts;
+  }
+
+  public Integer getNumRequest() {
+    return numRequest;
   }
 }

@@ -5,23 +5,10 @@ import java.net.*;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
-/**
- * RestRequest - gets data from RESTful services (JSON, etc.)
- *
- * Example of use:
- *      RestResponse response = new RestRequest("https://data.seattle.gov/resource/33kz-ixgy.json")
- *          .addHeader("accept", "application/json")
- *          .addHeader("", "")
- *          .doGet();
- *
- *      String json = response.getBody();
- *
- */
-
 public class RestRequest {
 
-  private static final int CONNECTION_TIMEOUT_DEFAULT = 20000; // ms
-  private static final int READ_TIMEOUT_DEFAULT = 20000; // ms
+  private static final int CONNECTION_TIMEOUT_DEFAULT = 10000; // ms
+  private static final int READ_TIMEOUT_DEFAULT = 10000; // ms
 
   private String address;
   private Map<String, String> headers;

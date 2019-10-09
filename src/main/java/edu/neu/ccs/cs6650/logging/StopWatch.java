@@ -62,7 +62,11 @@ public class StopWatch {
     return s;
   }
 
-//  public String toJson() {
+  public double getStartTime() {
+    return startTime;
+  }
+
+  //  public String toJson() {
 //    JSONObject jo = new JSONObject(namedSplits);
 //    return jo.toString();
 //  }
@@ -75,8 +79,9 @@ public class StopWatch {
   // -------------------------------------------------------------------------
 
   private double now() {
-    double now = System.nanoTime() / 1e6;       // milliseconds
-//      double now = System.currentTimeMillis();    // CA: alternate approach - unclear which is better
+//    double now = System.nanoTime() / 1e6;       // milliseconds
+    double now = System.currentTimeMillis();    // CA: alternate approach - unclear which is better
+
     return now;
   }
 

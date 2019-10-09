@@ -1,10 +1,11 @@
 package edu.neu.ccs.cs6650.client;
 
 import edu.neu.ccs.cs6650.model.LatencyStat;
+import edu.neu.ccs.cs6650.model.ThreadInfo;
 import edu.neu.ccs.cs6650.model.ThreadStat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -13,6 +14,8 @@ import java.util.concurrent.Future;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -36,12 +39,13 @@ public class MultithreadedCallable {
   private Integer numSkiLifts; // default 40, range 5-60
   private Integer numRuns; // numRuns: default 10, max 20
 
-  private String ipAddress = "";
-  private String port = "";
+  private String ipAddress;
+  private String port;
 
   private AtomicInteger totalRequestSuccess = new AtomicInteger(0);
   private AtomicInteger totalRequestFail = new AtomicInteger(0);
   private List<LatencyStat> latencyStats = new ArrayList<>();
+  private CountDownLatch countDownLatch;
 
   public MultithreadedCallable(Integer numThreads, Integer numSkiers, Integer numSkiLifts, Integer numRuns,
       String ipAddress, String port) {
@@ -53,64 +57,95 @@ public class MultithreadedCallable {
     this.port = port;
   }
 
-  public void run(int phase) {
-    logger.info("Starting phase " + phase + "...");
+  public void run() {
+    // phase 1:
+    logger.info("Starting phase 1...");
     logger.info("====================================");
 
-    // calculate number of threads to run for each phase
-    int numPoolThreads = getNumThreads(numThreads, phase);
-    System.out.println("num pool threads: " + numPoolThreads);
-    int skierIdRangePerThread = (int) Math.ceil(numSkiers * 1.0 / numPoolThreads);
+    List<RequestCallable> threadList1 = prepareThreads(1);
 
-    ExecutorService executor = Executors.newFixedThreadPool(numPoolThreads);
-    // num of completed threads to trigger next phase
-    CountDownLatch countDownLatch = new CountDownLatch(numPoolThreads / 10);
+    ExecutorService executor1 = Executors.newFixedThreadPool(threadList1.size());
 
-    int threadCount = 0, startSkierID = 1, remainingNumIds = numSkiers;
+    logger.info(threadList1.size() + " threads spawned for phase 1");
 
-    int startTime = getStartEndTimeByPhase(phase, true);
-    int endTime = getStartEndTimeByPhase(phase, false);
+    List<Future<ThreadStat>> resultPhase1 = new ArrayList<>();
+    try {
+      resultPhase1 = executor1.invokeAll(threadList1);
+    } catch (InterruptedException e) {
+      logger.info(e);
+    }
 
-    int numRequestPerThread = getNumRequestPerThread(numPoolThreads, phase);
-    System.out.println("Num skiers per thread: " + skierIdRangePerThread);
+    countDown();
+    logger.info("Starting phase 2...");
+    logger.info("====================================");
+    // phase 2
+    List<RequestCallable> threadList2 = prepareThreads(2);
 
-    Callable thread;
-    for (int i = 0; i < numPoolThreads; i++) {
-      String name = "Thread #" + threadCount;
-//      System.out.println("startSkierId: " + startSkierID);
-//      System.out.println("remaining: " + remainingNumIds);
-      int range = Math.min(skierIdRangePerThread, remainingNumIds);
-      ThreadInfo info = new ThreadInfo(name, ipAddress, port, startSkierID, startSkierID + range,
-          startTime, endTime, numRuns, numSkiLifts, numRequestPerThread);
+    ExecutorService executor2 = Executors.newFixedThreadPool(threadList2.size());
+    logger.info(threadList2.size() + " threads spawned for phase 2");
+    List<Future<ThreadStat>> resultPhase2 = new ArrayList<>();
+    try {
+      resultPhase2 = executor2.invokeAll(threadList2);
+    } catch (InterruptedException e) {
+      logger.info(e);
+    }
 
-      thread = new RequestCallable(phase, info, countDownLatch);
+    countDown();
 
-      threadCount++;
-      remainingNumIds -= range;
-      startSkierID += range;
+    /* TODO - Assignment 2
 
-      Future<ThreadStat> future = executor.submit(thread);
+    Every time the client sends a POST in phase 3, it should immediately issue a corresponding GET request using the same URL parameter values.
+    This essentially increases the number of requests you send in phase 3. We’ll use this new client in the next task.
+
+     */
+    logger.info("Starting phase 3...");
+    logger.info("====================================");
+
+    List<RequestCallable> threadList3 = prepareThreads(3);
+    ExecutorService executor3 = Executors.newFixedThreadPool(threadList3.size());
+    logger.info(threadList3.size() + " threads spawned for phase 3");
+    List<Future<ThreadStat>> resultPhase3 = new ArrayList<>();
+    try {
+      resultPhase3 = executor3.invokeAll(threadList3);
+    } catch (InterruptedException e) {
+      logger.info(e);
+    }
+
+    List<Future<ThreadStat>> totalResult = Stream.of(resultPhase1, resultPhase2, resultPhase3).flatMap(
+        Collection::stream).collect(Collectors.toList());
+    logger.info("Number of threads result: " + totalResult.size());
+    for (Future<ThreadStat> res : totalResult) {
       try {
-        totalRequestSuccess.addAndGet(future.get().getNumRequestSuccess());
-        totalRequestFail.addAndGet(future.get().getNumRequestFail());
+//        logger.info("Num success: " + res.get().getNumRequestSuccess());
+//        logger.info("Num failures: " + res.get().getNumRequestFail());
+        totalRequestSuccess.addAndGet(res.get().getNumRequestSuccess());
+        totalRequestFail.addAndGet(res.get().getNumRequestFail());
         // how to concatenate all latency result here!?!?
-        latencyStats.addAll(future.get().getStatList());
+        latencyStats.addAll(res.get().getStatList());
       } catch (InterruptedException | ExecutionException e) {
+
         logger.error("ERROR: Exception returning number of request sent.");
         logger.error(e);
+        e.printStackTrace();
       }
     }
 
-    logger.info(threadCount + " threads spawned for phase " + phase);
+    shutdownExecutor(executor1);
+    shutdownExecutor(executor2);
+    shutdownExecutor(executor3);
+  }
 
+
+  public void countDown() {
     try {
-      countDownLatch.await();
-      logger.info("10% of threads from phase " + phase + " finished");
-      if (phase + 1 <= 3) run(phase + 1);
+      countDownLatch.await(3L, TimeUnit.SECONDS);
+      logger.info("10% of threads from current phase finished");
     } catch (InterruptedException e) {
       logger.error("ERROR: CountdownLatch failed to work");
     }
+  }
 
+  public void shutdownExecutor(ExecutorService executor) {
     try {
       int tries = 0;
       executor.shutdown();
@@ -121,18 +156,47 @@ public class MultithreadedCallable {
           System.exit(0);
         }
       }
-      logger.info("Phase " + phase + " complete!");
     } catch (InterruptedException e) {
       executor.shutdownNow();
       Thread.currentThread().interrupt();
     }
-
-//    logger.info("Phase " + phase + " complete!");
-//    logger.info("====================================");
-//    logger.info("Threads spawned: " + threadCount);
-//    logger.info("Done!");
   }
 
+  public List<RequestCallable> prepareThreads(int phase) {
+    int numPoolThreads = getNumThreads(numThreads, phase);
+
+    int skierIdRangePerThread = (int) (numSkiers * 1.0 / numPoolThreads);
+//    System.out.println("num skiers per thread: " + skierIdRangePerThread);
+    int threadCount = 0, startSkierID = 1, remainingNumIds = numSkiers;
+
+    int startTime = getStartEndTimeByPhase(phase, true);
+    int endTime = getStartEndTimeByPhase(phase, false);
+
+    int numRequestPerThread = getNumRequestPerThread(numPoolThreads, phase);
+
+    // num of completed threads to trigger next phase
+    countDownLatch = new CountDownLatch(numPoolThreads / 10);
+
+    List<RequestCallable> threadList = new ArrayList<>();
+    for (int i = 0; i < numPoolThreads; i++) {
+      String name = "Thread #" + threadCount;
+//      System.out.println("startSkierId: " + startSkierID);
+//      System.out.println("remaining: " + remainingNumIds);
+      int range = (i == numPoolThreads - 1) ? remainingNumIds
+                                            : skierIdRangePerThread;
+      if (range == 0) break;
+      ThreadInfo info = new ThreadInfo(name, ipAddress, port, startSkierID, startSkierID + range,
+          startTime, endTime, numRuns, numSkiLifts, numRequestPerThread);
+
+      threadList.add(new RequestCallable(phase, info, countDownLatch));
+
+      threadCount++;
+      remainingNumIds -= range;
+      startSkierID += range;
+    }
+
+    return threadList;
+  }
 
   public int getStartEndTimeByPhase(int phase, boolean isStart) throws IllegalArgumentException {
     switch (phase) {

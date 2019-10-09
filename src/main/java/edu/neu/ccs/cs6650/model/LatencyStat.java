@@ -29,6 +29,10 @@ public class LatencyStat {
     return latency;
   }
 
+  public void setStartTime(long startTime) {
+    this.startTime = startTime;
+  }
+
   @Override
   public String toString() {
     return startTime + "," + requestType.toString() + "," + latency + "," + responseCode;

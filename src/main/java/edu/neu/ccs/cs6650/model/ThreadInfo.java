@@ -1,4 +1,4 @@
-package edu.neu.ccs.cs6650.client;
+package edu.neu.ccs.cs6650.model;
 
 public class ThreadInfo {
   private String name;

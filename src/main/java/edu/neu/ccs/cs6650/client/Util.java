@@ -4,12 +4,21 @@ import edu.neu.ccs.cs6650.model.LatencyStat;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
+import javafx.util.Pair;
 import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
 
 public class Util {
+
+  public static List<LatencyStat> adjustLatencyStartTime(List<LatencyStat> rawData, long startTime) {
+    return rawData.stream().map(s -> new LatencyStat(s.getResponseCode(), s.getRequestType(), (s.getStartTime() - startTime) / 1000, s.getLatency()))
+        .collect(Collectors.toList());
+  }
 
   public static void writeToCSV(List<LatencyStat> latencyStats, String filePath) throws IOException {
     File outputFile = new File(filePath);

@@ -3,6 +3,8 @@ package edu.neu.ccs.cs6650.client;
 import edu.neu.ccs.cs6650.logging.StopWatch;
 import edu.neu.ccs.cs6650.model.LatencyStat;
 import java.io.IOException;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -16,15 +18,16 @@ public class Main {
   private static final int MIN_NUM_LIFTS = 5;
   private static final int MAX_NUM_LIFTS = 60;
 
-  private static final String csvPath = "/Users/qa/Documents/Github/cs6650/stats.csv";
+  private static final String CSV_PATH = "/Users/qa/Documents/Github/cs6650/stats.csv";
 
   public static void main(String[] args) {
+    // TODO: Performance testing for assignment 2 (32, 64, 128, 256 threads) -> expect database deadlocks
 //    System.setProperty("java.net.preferIPv4Stack", "true");
 
-    Integer numThreads = 64; // max = 256
-    Integer numSkiers = 2000; // effectively the skier's ID | max = 50000
+    Integer numThreads = 256; // max = 256
+    Integer numSkiers = 20000; // effectively the skier's ID | max = 50000
     Integer numSkiLifts = 40; // default 40, range 5-60
-    Integer numRuns = 10; // numRuns: default 10, max 20
+    Integer numRuns = 20; // numRuns: default 10, max 20
 
     String ipAddress = "";
     String port = "";
@@ -47,19 +50,21 @@ public class Main {
 //    MultithreadedClient client = new MultithreadedClient(numThreads, numSkiers, numSkiLifts, numRuns, ipAddress, port);
     MultithreadedCallable client = new MultithreadedCallable(numThreads, numSkiers, numSkiLifts, numRuns, ipAddress, port);
     sw.start();
-    client.run(1);
+    client.run();
     sw.stop();
 
     double totalElapsedTime = sw.getElapsedTime() / 1000;
     System.out.println();
     logger.info("Number of requests sent: " + client.getTotalRequestSuccess());
     logger.info("Number of requests failed: " + client.getTotalRequestFail());
-    logger.info("Total run time: " + totalElapsedTime);
+    logger.info("Total run time: " + totalElapsedTime + " seconds");
 
-    // TODO: output client's latency result to csv
-    List<LatencyStat> latencyStats = client.getLatencyStats();
+    // adjust start time to system' start time then output results to csv
+    List<LatencyStat> latencyStats = Util.adjustLatencyStartTime(client.getLatencyStats(), (long) sw.getStartTime());
+    latencyStats.sort(Comparator.comparingLong(LatencyStat::getStartTime));
+
     try {
-      Util.writeToCSV(latencyStats, csvPath);
+      Util.writeToCSV(latencyStats, CSV_PATH);
       logger.info("Results written to CSV!\n");
     } catch (IOException e) {
       logger.info("ERROR: IOException writing to file.");
@@ -70,7 +75,7 @@ public class Main {
     logger.info("Median response time: " + Util.findMedianResponseTime(latencyStats)  + " ms");
     logger.info("Max response time: " + Util.findMaxResponseTime(latencyStats)  + " ms");
     logger.info("99th percentile response time: " + Util.find99percentileResponseTime(latencyStats)  + " ms");
-    logger.info("Throughput: " + Util.findThroughput(totalElapsedTime, client.getTotalRequestSuccess().longValue()) + " request/s");
+    logger.info("Throughput: " + Util.findThroughput(totalElapsedTime, client.getTotalRequestSuccess().longValue()) + " requests/second");
     logger.info("============= DONE =================");
   }
 

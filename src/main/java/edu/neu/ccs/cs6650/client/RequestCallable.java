@@ -18,25 +18,20 @@ import org.apache.logging.log4j.LogManager;
 
 public class RequestCallable implements Callable<ThreadStat> {
   private static final Logger logger = LogManager.getLogger(RequestCallable.class.getName());
-  private static final String LOCAL_HOST = "localhost:8080";
+
   // public DNS (IPv4)
 //  private static final String EC2_ENDPOINT = "ec2-34-221-182-197.us-west-2.compute.amazonaws.com:8080";
-  // IPv4 public IP
-  private static final String EC2_ENDPOINT = "34.221.182.197:8080";
-  private static final boolean IS_LOCAL = false;
 
-  private static final String API_ENDPOINT = "http://" + (IS_LOCAL ? LOCAL_HOST : EC2_ENDPOINT) + "/skier_api/";
-
-  private int numPhase;
+  private String apiEndpoint;
   private ThreadInfo info;
   private CountDownLatch countDownLatch;
   private List<LatencyStat> statList;
 
-  public RequestCallable(int numPhase, ThreadInfo info, CountDownLatch countDownLatch) {
-    this.numPhase = numPhase;
+  public RequestCallable(ThreadInfo info, CountDownLatch countDownLatch) {
     this.info = info;
     this.countDownLatch = countDownLatch;
     this.statList = new ArrayList<>();
+    this.apiEndpoint = "http://" + this.info.getIpAddress() + ":" + this.info.getPort() + "/skier_api/";
   }
 
   @Override
@@ -44,7 +39,7 @@ public class RequestCallable implements Callable<ThreadStat> {
     int rangeIdStart = info.getStartSkierId(), rangeIdEnd = info.getEndSkierId();
 //    System.out.println("startId: " + rangeIdStart);
 //    System.out.println("endId: " + rangeIdEnd);
-//    System.out.println("numLifts: " + info.getNumLifts());
+//    System.out.println("num requests: " + info.getNumRequest());
 
     int resortId = 1;
     int seasonId = 2019;
@@ -70,7 +65,7 @@ public class RequestCallable implements Callable<ThreadStat> {
   }
 
   public boolean sendDummyRequest(int resortId, int seasonId, int dayId, int skierId, int time, int liftId) {
-    StringBuilder sb = new StringBuilder(API_ENDPOINT);
+    StringBuilder sb = new StringBuilder(this.apiEndpoint);
     sb.append("skiers/");
     sb.append(resortId);
     sb.append("/seasons/");
@@ -89,7 +84,7 @@ public class RequestCallable implements Callable<ThreadStat> {
       try {
         response = new RestRequest(url)
             .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
-            .addHeader("Host", IS_LOCAL ? LOCAL_HOST : EC2_ENDPOINT)
+            .addHeader("Host", this.info.getIpAddress())
 //      .addHeader("Accept-Encoding", "gzip, deflate")
             .addHeader("Accept", "application/json")
 //      .addHeader("Connection", "keep-alive")
@@ -112,7 +107,6 @@ public class RequestCallable implements Callable<ThreadStat> {
       statList.add(new LatencyStat(response.statusCode(), RequestType.POST, startTime, endTime - startTime));
       return true;
     } else {
-
       return false;
     }
 //    String json = response == null ? "" : response.getBody();

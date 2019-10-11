@@ -15,6 +15,8 @@ public class ThreadInfo {
   public ThreadInfo(String name, String ipAddress, String port, Integer startSkierId, Integer endSkierId,
       Integer startTime, Integer endTime, Integer numRuns, Integer numLifts, Integer numRequest) {
     this.name = name;
+    this.ipAddress = ipAddress;
+    this.port = port;
     this.startSkierId = startSkierId;
     this.endSkierId = endSkierId;
     this.startTime = startTime;

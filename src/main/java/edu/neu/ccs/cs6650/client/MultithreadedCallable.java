@@ -3,23 +3,25 @@ package edu.neu.ccs.cs6650.client;
 import edu.neu.ccs.cs6650.model.LatencyStat;
 import edu.neu.ccs.cs6650.model.ThreadInfo;
 import edu.neu.ccs.cs6650.model.ThreadStat;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@SuppressWarnings("Duplicates")
 public class MultithreadedCallable {
   private static final Logger logger = LogManager.getLogger(Main.class.getName());
 
@@ -60,7 +62,6 @@ public class MultithreadedCallable {
   public void run() {
     // phase 1:
     logger.info("Starting phase 1...");
-    logger.info("====================================");
 
     List<RequestCallable> threadList1 = prepareThreads(1);
 
@@ -77,7 +78,7 @@ public class MultithreadedCallable {
 
     countDown();
     logger.info("Starting phase 2...");
-    logger.info("====================================");
+
     // phase 2
     List<RequestCallable> threadList2 = prepareThreads(2);
 
@@ -99,7 +100,6 @@ public class MultithreadedCallable {
 
      */
     logger.info("Starting phase 3...");
-    logger.info("====================================");
 
     List<RequestCallable> threadList3 = prepareThreads(3);
     ExecutorService executor3 = Executors.newFixedThreadPool(threadList3.size());
@@ -111,8 +111,11 @@ public class MultithreadedCallable {
       logger.info(e);
     }
 
-    List<Future<ThreadStat>> totalResult = Stream.of(resultPhase1, resultPhase2, resultPhase3).flatMap(
-        Collection::stream).collect(Collectors.toList());
+    List<Future<ThreadStat>> totalResult =
+        Stream.of(resultPhase1, resultPhase2, resultPhase3)
+              .flatMap(Collection::stream)
+              .collect(Collectors.toList());
+
     logger.info("Number of threads result: " + totalResult.size());
     for (Future<ThreadStat> res : totalResult) {
       try {
@@ -135,8 +138,7 @@ public class MultithreadedCallable {
     shutdownExecutor(executor3);
   }
 
-
-  public void countDown() {
+  private void countDown() {
     try {
       countDownLatch.await(3L, TimeUnit.SECONDS);
       logger.info("10% of threads from current phase finished");
@@ -145,7 +147,7 @@ public class MultithreadedCallable {
     }
   }
 
-  public void shutdownExecutor(ExecutorService executor) {
+  private void shutdownExecutor(ExecutorService executor) {
     try {
       int tries = 0;
       executor.shutdown();
@@ -162,7 +164,7 @@ public class MultithreadedCallable {
     }
   }
 
-  public List<RequestCallable> prepareThreads(int phase) {
+  private List<RequestCallable> prepareThreads(int phase) {
     int numPoolThreads = getNumThreads(numThreads, phase);
 
     int skierIdRangePerThread = (int) (numSkiers * 1.0 / numPoolThreads);
@@ -188,7 +190,7 @@ public class MultithreadedCallable {
       ThreadInfo info = new ThreadInfo(name, ipAddress, port, startSkierID, startSkierID + range,
           startTime, endTime, numRuns, numSkiLifts, numRequestPerThread);
 
-      threadList.add(new RequestCallable(phase, info, countDownLatch));
+      threadList.add(new RequestCallable(info, countDownLatch));
 
       threadCount++;
       remainingNumIds -= range;
@@ -198,7 +200,7 @@ public class MultithreadedCallable {
     return threadList;
   }
 
-  public int getStartEndTimeByPhase(int phase, boolean isStart) throws IllegalArgumentException {
+  private int getStartEndTimeByPhase(int phase, boolean isStart) throws IllegalArgumentException {
     switch (phase) {
       case 1:
         return isStart ? PHASE1_START_TIME : PHASE1_END_TIME;
@@ -211,7 +213,7 @@ public class MultithreadedCallable {
     }
   }
 
-  public Integer getNumThreads(Integer numThreads, int phase) {
+  private Integer getNumThreads(Integer numThreads, int phase) {
     switch (phase) {
       case 1:
       case 3:
@@ -223,7 +225,7 @@ public class MultithreadedCallable {
     }
   }
 
-  public Integer getNumRequestPerThread(int numPoolThreads, int phase) throws IllegalArgumentException {
+  private Integer getNumRequestPerThread(int numPoolThreads, int phase) throws IllegalArgumentException {
     switch (phase) {
       case 1:
       case 3:

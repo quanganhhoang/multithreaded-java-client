@@ -21,12 +21,14 @@ public class Main {
   public static void main(String[] args) {
     // TODO: Performance testing for assignment 2 (32, 64, 128, 256 threads) -> expect database deadlocks
 //    System.setProperty("java.net.preferIPv4Stack", "true");
-    Integer numThreads = 256; // max = 256
-    Integer numSkiers = 2000; // effectively the skier's ID | max = 50000
+    Integer numThreads = 350; // max = 256
+    Integer numSkiers = 20000; // effectively the skier's ID | max = 50000
     Integer numSkiLifts = 40; // default 40, range 5-60
     Integer numRuns = 20; // numRuns: default 10, max 20
 
-    String ipAddress = IS_LOCAL ? "localhost" : "ec2-34-221-182-197.us-west-2.compute.amazonaws.com";
+//    String ipAddress = IS_LOCAL ? "localhost" : "ec2-34-221-182-197.us-west-2.compute.amazonaws.com";
+    String ipAddress = IS_LOCAL ? "localhost" : "34.221.182.197";
+
     String port = "8080";
 
     // TODO: Validate command line arguments here

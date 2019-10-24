@@ -7,7 +7,7 @@ import java.util.zip.GZIPInputStream;
 
 public class RestRequest {
 
-  private static final int CONNECTION_TIMEOUT_DEFAULT = 10000; // ms
+  private static final int CONNECTION_TIMEOUT_DEFAULT = 20000; // ms
   private static final int READ_TIMEOUT_DEFAULT = 10000; // ms
 
   private String address;
@@ -159,6 +159,7 @@ public class RestRequest {
           responseBytes
       );
 
+      conn.disconnect();
     } finally {
       if (conn != null) {
         conn.disconnect();

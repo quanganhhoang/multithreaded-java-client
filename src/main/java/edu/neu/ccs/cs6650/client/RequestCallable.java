@@ -13,25 +13,30 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 public class RequestCallable implements Callable<ThreadStat> {
   private static final Logger logger = LogManager.getLogger(RequestCallable.class.getName());
 
-  // public DNS (IPv4)
-//  private static final String EC2_ENDPOINT = "ec2-34-221-182-197.us-west-2.compute.amazonaws.com:8080";
-
   private String apiEndpoint;
   private ThreadInfo info;
   private CountDownLatch countDownLatch;
   private List<LatencyStat> statList;
 
+  private final OkHttpClient httpClient = new OkHttpClient.Builder()
+      .connectTimeout(7, TimeUnit.SECONDS)
+      .readTimeout(7, TimeUnit.SECONDS).build();
+
   public RequestCallable(ThreadInfo info, CountDownLatch countDownLatch) {
     this.info = info;
     this.countDownLatch = countDownLatch;
     this.statList = new ArrayList<>();
-    this.apiEndpoint = "http://" + this.info.getIpAddress() + ":" + this.info.getPort() + "/skier_api/";
+    this.apiEndpoint = "http://" + this.info.getIpAddress() + ":" + this.info.getPort() + "/skier-api/";
   }
 
   @Override
@@ -43,7 +48,7 @@ public class RequestCallable implements Callable<ThreadStat> {
 
     int resortId = 1;
     int seasonId = 2019;
-    int dayId = 25;
+    int dayId = ThreadLocalRandom.current().nextInt(365);
 
     int totalNumRequestSent = 0, totalFailures = 0;
 
@@ -79,38 +84,30 @@ public class RequestCallable implements Callable<ThreadStat> {
 
     long startTime = System.currentTimeMillis();
 
-    RestResponse response = null;
-    for (int i = 0; i < 3; i++) {
-      try {
-        response = new RestRequest(url)
-            .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
-            .addHeader("Host", this.info.getIpAddress())
-//      .addHeader("Accept-Encoding", "gzip, deflate")
-            .addHeader("Accept", "application/json")
-//      .addHeader("Connection", "keep-alive")
-            .addHeader("Content-Type", "application/json;charset=UTF-8")
-            .addField("time", String.valueOf(time))
-            .addField("liftID", String.valueOf(liftId))
-            .doPost();
-//        logger.info("success");
-        break;
-      } catch (IOException e) {
-//        logger.info("Failed to call API");
-        logger.info(e);
-        sleep(500);
-      }
-    }
+    Request request = new Request.Builder()
+        .url(url)
+//        .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
+//        .addHeader("Host", this.info.getIpAddress())
+//        .addHeader("Accept-Encoding", "gzip, deflate")
+//        .addHeader("Accept", "application/json")
+//        .addHeader("Connection", "keep-alive")
+//        .addHeader("Content-Type", "application/json;charset=UTF-8")
+        .build();
 
-    long endTime = System.currentTimeMillis();
+    try (Response response = httpClient.newCall(request).execute()) {
 
-    if (response != null) {
-      statList.add(new LatencyStat(response.statusCode(), RequestType.POST, startTime, endTime - startTime));
+//      if (!response.isSuccessful()) {
+//        throw new IOException("Unexpected code " + response);
+//      } else {
+//
+//      }
+      statList.add(new LatencyStat(response.code(), RequestType.POST, startTime, System.currentTimeMillis() - startTime));
       return true;
-    } else {
+      // Get response body
+//      System.out.println(response.body().string());
+    } catch (IOException e) {
       return false;
     }
-//    String json = response == null ? "" : response.getBody();
-//    System.out.println(this.numPhase + ": " + json);
   }
 
   public void sendPostRequest() {

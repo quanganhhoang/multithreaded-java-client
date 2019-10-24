@@ -95,7 +95,8 @@ public class MultithreadedCallable {
 
     /* TODO - Assignment 2
 
-    Every time the client sends a POST in phase 3, it should immediately issue a corresponding GET request using the same URL parameter values.
+    Every time the client sends a POST in phase 3,
+    it should immediately issue a corresponding GET request using the same URL parameter values.
     This essentially increases the number of requests you send in phase 3. We’ll use this new client in the next task.
 
      */

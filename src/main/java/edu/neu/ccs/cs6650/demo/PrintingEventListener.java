@@ -13,9 +13,10 @@ import okhttp3.HttpUrl;
 import okhttp3.Protocol;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.jetbrains.annotations.NotNull;
 
 public final class PrintingEventListener extends EventListener {
-  long callStartNanos;
+  private long callStartNanos;
 
   private void printEvent(String name) {
     long nowNanos = System.nanoTime();
@@ -23,14 +24,14 @@ public final class PrintingEventListener extends EventListener {
       callStartNanos = nowNanos;
     }
     long elapsedNanos = nowNanos - callStartNanos;
-    System.out.printf("%.3f %s%n", elapsedNanos / 1000000000d, name);
+    System.out.printf("%.3fms %s%n", elapsedNanos / 1000000d, name);
   }
 
-  @Override public void callStart(Call call) {
+  @Override public void callStart(@NotNull Call call) {
     printEvent("callStart");
   }
 
-  @Override public void proxySelectStart(Call call, HttpUrl url) {
+  @Override public void proxySelectStart(@NotNull Call call, HttpUrl url) {
     printEvent("proxySelectStart");
   }
 

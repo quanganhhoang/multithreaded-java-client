@@ -4,8 +4,7 @@ import edu.neu.ccs.cs6650.model.LatencyStat;
 import edu.neu.ccs.cs6650.model.RequestType;
 import edu.neu.ccs.cs6650.model.ThreadInfo;
 import edu.neu.ccs.cs6650.model.ThreadStat;
-import edu.neu.ccs.cs6650.net.RestRequest;
-import edu.neu.ccs.cs6650.net.RestResponse;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -14,8 +13,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import okhttp3.FormBody;
+import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
@@ -70,22 +72,35 @@ public class RequestCallable implements Callable<ThreadStat> {
   }
 
   public boolean sendDummyRequest(int resortId, int seasonId, int dayId, int skierId, int time, int liftId) {
-    StringBuilder sb = new StringBuilder(this.apiEndpoint);
-    sb.append("skiers/");
-    sb.append(resortId);
-    sb.append("/seasons/");
-    sb.append(seasonId);
-    sb.append("/days/");
-    sb.append(dayId);
-    sb.append("/skiers/");
-    sb.append(skierId);
+    StringBuilder sb = new StringBuilder(this.apiEndpoint)
+            .append("skiers/")
+            .append(resortId)
+//            .append(1)
+            .append("/seasons/")
+            .append(seasonId)
+//            .append(2019)
+            .append("/days/")
+            .append(dayId)
+//            .append(1)
+            .append("/skiers/")
+            .append(skierId);
+//            .append(1);
     String url = sb.toString();
 //    System.out.println(url);
+//    RequestBody formBody = new FormBody.Builder()
+//        .add("time", String.valueOf(time))
+//        .add("liftID", String.valueOf(liftId))
+//        .build();
 
+    String json = "{\"time\":" + time + ",\"liftID\":\"" + liftId + "\"}";
+
+    RequestBody requestBody = RequestBody.create(json,
+        MediaType.parse("application/json; charset=utf-8"));
     long startTime = System.currentTimeMillis();
 
     Request request = new Request.Builder()
         .url(url)
+        .post(requestBody)
 //        .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
 //        .addHeader("Host", this.info.getIpAddress())
 //        .addHeader("Accept-Encoding", "gzip, deflate")
@@ -95,7 +110,6 @@ public class RequestCallable implements Callable<ThreadStat> {
         .build();
 
     try (Response response = httpClient.newCall(request).execute()) {
-
 //      if (!response.isSuccessful()) {
 //        throw new IOException("Unexpected code " + response);
 //      } else {
@@ -106,19 +120,16 @@ public class RequestCallable implements Callable<ThreadStat> {
       // Get response body
 //      System.out.println(response.body().string());
     } catch (IOException e) {
+      logger.info(e);
       return false;
     }
   }
 
-  public void sendPostRequest() {
-
-  }
-
-  public static void sleep(long time) {
-    try {
-      Thread.sleep(time);
-    } catch(InterruptedException ex) {
-      Thread.currentThread().interrupt();
-    }
-  }
+//  public static void sleep(long time) {
+//    try {
+//      Thread.sleep(time);
+//    } catch(InterruptedException ex) {
+//      Thread.currentThread().interrupt();
+//    }
+//  }
 }

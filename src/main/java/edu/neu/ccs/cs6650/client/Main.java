@@ -20,8 +20,8 @@ public class Main {
 
   public static void main(String[] args) {
     // TODO: Performance testing for assignment 2 (32, 64, 128, 256 threads) -> expect database deadlocks
-//    System.setProperty("java.net.preferIPv4Stack", "true");
-    Integer numThreads = 350; // max = 256
+    System.setProperty("java.net.preferIPv4Stack", "true");
+    Integer numThreads = 256; // max = 256
     Integer numSkiers = 20000; // effectively the skier's ID | max = 50000
     Integer numSkiLifts = 40; // default 40, range 5-60
     Integer numRuns = 20; // numRuns: default 10, max 20

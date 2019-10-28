@@ -3,7 +3,7 @@ package edu.neu.ccs.cs6650.client;
 import edu.neu.ccs.cs6650.logging.StopWatch;
 import edu.neu.ccs.cs6650.model.LatencyStat;
 import java.io.IOException;
-import java.util.Collections;
+
 import java.util.Comparator;
 import java.util.List;
 import org.apache.logging.log4j.Logger;
@@ -26,10 +26,9 @@ public class Main {
     Integer numSkiLifts = 40; // default 40, range 5-60
     Integer numRuns = 20; // numRuns: default 10, max 20
 
-//    String ipAddress = IS_LOCAL ? "localhost" : "ec2-34-221-182-197.us-west-2.compute.amazonaws.com";
-    String ipAddress = IS_LOCAL ? "localhost" : "34.221.182.197";
-
-    String port = "8080";
+//    String ipAddress = IS_LOCAL ? "localhost" : "ec2-54-191-195-103.us-west-2.compute.amazonaws.com";
+    String ipAddress = IS_LOCAL ? "localhost" : "cs6650-loadbalancer-1302090979.us-west-2.elb.amazonaws.com";
+    String port = "80";
 
     // TODO: Validate command line arguments here
     if (args.length != 0 && validateInput(args)) {

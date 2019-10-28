@@ -10,7 +10,8 @@ import org.apache.logging.log4j.Logger;
 public class OkHttpExample {
   private static final Logger logger = LogManager.getLogger(SingleThreadClient.class.getName());
   private static final String LOCAL_HOST = "localhost:8080";
-  private static final String EC2_ENDPOINT = "ec2-34-221-182-197.us-west-2.compute.amazonaws.com:8080";
+//  private static final String EC2_ENDPOINT = "ec2-54-191-195-103.us-west-2.compute.amazonaws.com";
+  private static final String EC2_ENDPOINT = "cs6650-loadbalancer-1302090979.us-west-2.elb.amazonaws.com";
 
   private static final boolean IS_LOCAL = false;
 

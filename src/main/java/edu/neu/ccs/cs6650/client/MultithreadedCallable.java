@@ -1,20 +1,24 @@
 package edu.neu.ccs.cs6650.client;
 
+import edu.neu.ccs.cs6650.logging.StopWatch;
 import edu.neu.ccs.cs6650.model.LatencyStat;
 import edu.neu.ccs.cs6650.model.ThreadInfo;
 import edu.neu.ccs.cs6650.model.ThreadStat;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionService;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorCompletionService;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -25,9 +29,7 @@ import org.apache.logging.log4j.Logger;
 public class MultithreadedCallable {
   private static final Logger logger = LogManager.getLogger(Main.class.getName());
 
-  private static final int MIN_JITTER_TIME = 250;             // milliseconds
-  private static final int MAX_JITTER_TIME = 1000;            // milliseconds
-  private static final int MAX_TERMINATION_WAIT_TIME = 60;    // seconds
+  private static final int MAX_TERMINATION_WAIT_TIME = 20;    // seconds
 
   private static final int PHASE1_START_TIME = 1;
   private static final int PHASE1_END_TIME = 90;
@@ -44,10 +46,12 @@ public class MultithreadedCallable {
   private String ipAddress;
   private String port;
 
-  private AtomicInteger totalRequestSuccess = new AtomicInteger(0);
-  private AtomicInteger totalRequestFail = new AtomicInteger(0);
+  private long totalRequestSuccess;
+  private long totalRequestFail;
   private List<LatencyStat> latencyStats = new ArrayList<>();
   private CountDownLatch countDownLatch;
+
+//  private StopWatch sw = new StopWatch();
 
   public MultithreadedCallable(Integer numThreads, Integer numSkiers, Integer numSkiLifts, Integer numRuns,
       String ipAddress, String port) {
@@ -60,15 +64,16 @@ public class MultithreadedCallable {
   }
 
   public void run() {
+//    sw.start();
     // phase 1:
     logger.info("Starting phase 1...");
-
+//    sw.addNamedSplit("Preparing phase 1 threads");
     List<RequestCallable> threadList1 = prepareThreads(1);
-
+//    sw.addNamedSplit("Finished preparing phase 1 threads");
     ExecutorService executor1 = Executors.newFixedThreadPool(threadList1.size());
 
     logger.info(threadList1.size() + " threads spawned for phase 1");
-
+//    sw.addNamedSplit("Invoking phase 1 threads");
     List<Future<ThreadStat>> resultPhase1 = new ArrayList<>();
     try {
       resultPhase1 = executor1.invokeAll(threadList1);
@@ -80,10 +85,12 @@ public class MultithreadedCallable {
     logger.info("Starting phase 2...");
 
     // phase 2
+//    sw.addNamedSplit("Preparing phase 2 threads");
     List<RequestCallable> threadList2 = prepareThreads(2);
-
+//    sw.addNamedSplit("Finished preparing phase 2 threads");
     ExecutorService executor2 = Executors.newFixedThreadPool(threadList2.size());
     logger.info(threadList2.size() + " threads spawned for phase 2");
+//    sw.addNamedSplit("Invoking phase 2 threads");
     List<Future<ThreadStat>> resultPhase2 = new ArrayList<>();
     try {
       resultPhase2 = executor2.invokeAll(threadList2);
@@ -93,25 +100,20 @@ public class MultithreadedCallable {
 
     countDown();
 
-    /* TODO - Assignment 2
-
-    Every time the client sends a POST in phase 3,
-    it should immediately issue a corresponding GET request using the same URL parameter values.
-    This essentially increases the number of requests you send in phase 3. We’ll use this new client in the next task.
-
-     */
     logger.info("Starting phase 3...");
-
+//    sw.addNamedSplit("Preparing phase 3 threads");
     List<RequestCallable> threadList3 = prepareThreads(3);
     ExecutorService executor3 = Executors.newFixedThreadPool(threadList3.size());
     logger.info(threadList3.size() + " threads spawned for phase 3");
     List<Future<ThreadStat>> resultPhase3 = new ArrayList<>();
+//    sw.addNamedSplit("Invoking phase 3 threads");
     try {
       resultPhase3 = executor3.invokeAll(threadList3);
     } catch (InterruptedException e) {
       logger.info(e);
     }
 
+//    sw.addNamedSplit("Collecting data...");
     List<Future<ThreadStat>> totalResult =
         Stream.of(resultPhase1, resultPhase2, resultPhase3)
               .flatMap(Collection::stream)
@@ -122,21 +124,23 @@ public class MultithreadedCallable {
       try {
 //        logger.info("Num success: " + res.get().getNumRequestSuccess());
 //        logger.info("Num failures: " + res.get().getNumRequestFail());
-        totalRequestSuccess.addAndGet(res.get().getNumRequestSuccess());
-        totalRequestFail.addAndGet(res.get().getNumRequestFail());
-        // how to concatenate all latency result here!?!?
+        totalRequestSuccess += res.get().getNumRequestSuccess();
+        totalRequestFail += res.get().getNumRequestFail();
+
         latencyStats.addAll(res.get().getStatList());
-      } catch (InterruptedException | ExecutionException e) {
+      } catch (InterruptedException | ExecutionException | CancellationException e) {
 
         logger.error("ERROR: Exception returning number of request sent.");
         logger.error(e);
         e.printStackTrace();
       }
     }
-
+//    sw.addNamedSplit("Shutting down executors");
     shutdownExecutor(executor1);
     shutdownExecutor(executor2);
     shutdownExecutor(executor3);
+//    sw.addNamedSplit("Finished!");
+//    System.out.println(sw.toString());
   }
 
   private void countDown() {
@@ -170,7 +174,7 @@ public class MultithreadedCallable {
 
     int skierIdRangePerThread = (int) (numSkiers * 1.0 / numPoolThreads);
 //    System.out.println("num skiers per thread: " + skierIdRangePerThread);
-    int threadCount = 0, startSkierID = 1, remainingNumIds = numSkiers;
+    int startSkierID = 1, remainingNumIds = numSkiers;
 
     int startTime = getStartEndTimeByPhase(phase, true);
     int endTime = getStartEndTimeByPhase(phase, false);
@@ -182,18 +186,16 @@ public class MultithreadedCallable {
 
     List<RequestCallable> threadList = new ArrayList<>();
     for (int i = 0; i < numPoolThreads; i++) {
-      String name = "Thread #" + threadCount;
 //      System.out.println("startSkierId: " + startSkierID);
 //      System.out.println("remaining: " + remainingNumIds);
       int range = (i == numPoolThreads - 1) ? remainingNumIds
                                             : skierIdRangePerThread;
       if (range == 0) break;
-      ThreadInfo info = new ThreadInfo(name, ipAddress, port, startSkierID, startSkierID + range,
-          startTime, endTime, numRuns, numSkiLifts, numRequestPerThread);
+      ThreadInfo info = new ThreadInfo(ipAddress, port, startSkierID, startSkierID + range,
+          startTime, endTime, numRuns, numSkiLifts, numRequestPerThread, phase);
 
       threadList.add(new RequestCallable(info, countDownLatch));
 
-      threadCount++;
       remainingNumIds -= range;
       startSkierID += range;
     }
@@ -238,11 +240,11 @@ public class MultithreadedCallable {
     }
   }
 
-  public AtomicInteger getTotalRequestFail() {
+  public long getTotalRequestFail() {
     return totalRequestFail;
   }
 
-  public AtomicInteger getTotalRequestSuccess() {
+  public long getTotalRequestSuccess() {
     return totalRequestSuccess;
   }
 

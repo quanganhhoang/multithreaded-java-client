@@ -8,7 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 public class OkHttpExample {
-  private static final Logger logger = LogManager.getLogger(SingleThreadClient.class.getName());
+  private static final Logger logger = LogManager.getLogger(OkHttpExample.class.getName());
   private static final String LOCAL_HOST = "localhost:8080";
 //  private static final String EC2_ENDPOINT = "ec2-54-191-195-103.us-west-2.compute.amazonaws.com";
   private static final String EC2_ENDPOINT = "cs6650-loadbalancer-1302090979.us-west-2.elb.amazonaws.com";
@@ -25,9 +25,9 @@ public class OkHttpExample {
     OkHttpExample obj = new OkHttpExample();
 
     System.out.println("Testing 1 - Send Http GET request");
-//    obj.sendGet();
+    obj.sendGet();
 //    obj.sendGetSkier();
-    obj.addNewLiftRide();
+//    obj.addNewLiftRide();
 
 //    System.out.println("Testing 2 - Send Http POST request");
 //    obj.sendPost();
@@ -38,9 +38,9 @@ public class OkHttpExample {
     System.out.println(url);
     Request request = new Request.Builder()
         .url(url)
-        .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
+//        .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
         .addHeader("Host", IS_LOCAL ? LOCAL_HOST : EC2_ENDPOINT)
-        .addHeader("Accept-Encoding", "gzip, deflate")
+//        .addHeader("Accept-Encoding", "gzip, deflate")
         .addHeader("Accept", "application/json")
 //        .addHeader("Connection", "keep-alive")
         .addHeader("Content-Type", "application/json;charset=UTF-8")

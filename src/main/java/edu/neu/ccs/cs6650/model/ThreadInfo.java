@@ -1,7 +1,6 @@
 package edu.neu.ccs.cs6650.model;
 
 public class ThreadInfo {
-  private String name;
   private String ipAddress;
   private String port;
   private Integer startSkierId;
@@ -11,10 +10,10 @@ public class ThreadInfo {
   private Integer numRuns;
   private Integer numLifts;
   private Integer numRequest;
+  private Integer phase;
 
-  public ThreadInfo(String name, String ipAddress, String port, Integer startSkierId, Integer endSkierId,
-      Integer startTime, Integer endTime, Integer numRuns, Integer numLifts, Integer numRequest) {
-    this.name = name;
+  public ThreadInfo(String ipAddress, String port, Integer startSkierId, Integer endSkierId,
+      Integer startTime, Integer endTime, Integer numRuns, Integer numLifts, Integer numRequest, Integer phase) {
     this.ipAddress = ipAddress;
     this.port = port;
     this.startSkierId = startSkierId;
@@ -24,10 +23,7 @@ public class ThreadInfo {
     this.numRuns = numRuns;
     this.numLifts = numLifts;
     this.numRequest = numRequest;
-  }
-
-  public String getName() {
-    return name;
+    this.phase = phase;
   }
 
   public String getIpAddress() {
@@ -64,5 +60,9 @@ public class ThreadInfo {
 
   public Integer getNumRequest() {
     return numRequest;
+  }
+
+  public Integer getPhase() {
+    return phase;
   }
 }

@@ -13,7 +13,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
-import okhttp3.FormBody;
+
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -23,22 +23,25 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
 public class RequestCallable implements Callable<ThreadStat> {
-  private static final Logger logger = LogManager.getLogger(RequestCallable.class.getName());
-
+//  private static final Logger logger = LogManager.getLogger(RequestCallable.class.getName());
+  private static final boolean IS_AWS = true;
   private String apiEndpoint;
   private ThreadInfo info;
   private CountDownLatch countDownLatch;
   private List<LatencyStat> statList;
 
   private final OkHttpClient httpClient = new OkHttpClient.Builder()
-      .connectTimeout(7, TimeUnit.SECONDS)
-      .readTimeout(7, TimeUnit.SECONDS).build();
+      .connectTimeout(10, TimeUnit.SECONDS)
+      .readTimeout(5, TimeUnit.SECONDS)
+      .retryOnConnectionFailure(false).build();
 
   public RequestCallable(ThreadInfo info, CountDownLatch countDownLatch) {
     this.info = info;
     this.countDownLatch = countDownLatch;
     this.statList = new ArrayList<>();
-    this.apiEndpoint = "http://" + this.info.getIpAddress() + ":" + this.info.getPort() + "/skier-api/";
+    this.apiEndpoint = (IS_AWS ? "http://" : "https://")
+        + this.info.getIpAddress()
+        + (IS_AWS ? ":" + this.info.getPort() + "/skier-api/" : "/");
   }
 
   @Override
@@ -59,10 +62,21 @@ public class RequestCallable implements Callable<ThreadStat> {
       int liftId = ThreadLocalRandom.current().nextInt(info.getNumLifts());
       int time = info.getStartTime() + ThreadLocalRandom.current().nextInt(info.getEndTime() - info.getStartTime());
 
-      if (sendDummyRequest(resortId, seasonId, dayId, skierId, time, liftId)) {
+      String url = buildSqlStmt(resortId, seasonId, dayId, skierId);
+
+      if (sendPostRequest(url, time, liftId)) {
         totalNumRequestSent++;
       } else {
         totalFailures++;
+      }
+
+      // only applies to phase 3
+      if (this.info.getPhase() == 3) {
+        if (sendGetRequest(url)) {
+          totalNumRequestSent++;
+        } else {
+          totalFailures++;
+        }
       }
     }
 
@@ -71,32 +85,11 @@ public class RequestCallable implements Callable<ThreadStat> {
     return new ThreadStat(totalNumRequestSent, totalFailures, statList);
   }
 
-  public boolean sendDummyRequest(int resortId, int seasonId, int dayId, int skierId, int time, int liftId) {
-    StringBuilder sb = new StringBuilder(this.apiEndpoint)
-            .append("skiers/")
-            .append(resortId)
-//            .append(1)
-            .append("/seasons/")
-            .append(seasonId)
-//            .append(2019)
-            .append("/days/")
-            .append(dayId)
-//            .append(1)
-            .append("/skiers/")
-            .append(skierId);
-//            .append(1);
-    String url = sb.toString();
-//    System.out.println(url);
-//    RequestBody formBody = new FormBody.Builder()
-//        .add("time", String.valueOf(time))
-//        .add("liftID", String.valueOf(liftId))
-//        .build();
-
+  private boolean sendPostRequest(String url, int time, int liftId) {
     String json = "{\"time\":" + time + ",\"liftID\":\"" + liftId + "\"}";
 
     RequestBody requestBody = RequestBody.create(json,
         MediaType.parse("application/json; charset=utf-8"));
-    long startTime = System.currentTimeMillis();
 
     Request request = new Request.Builder()
         .url(url)
@@ -104,11 +97,12 @@ public class RequestCallable implements Callable<ThreadStat> {
 //        .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
 //        .addHeader("Host", this.info.getIpAddress())
 //        .addHeader("Accept-Encoding", "gzip, deflate")
-//        .addHeader("Accept", "application/json")
-//        .addHeader("Connection", "keep-alive")
+        .addHeader("Accept", "application/json")
+        .addHeader("Connection", "keep-alive")
 //        .addHeader("Content-Type", "application/json;charset=UTF-8")
         .build();
 
+    long startTime = System.currentTimeMillis();
     try (Response response = httpClient.newCall(request).execute()) {
 //      if (!response.isSuccessful()) {
 //        throw new IOException("Unexpected code " + response);
@@ -120,9 +114,43 @@ public class RequestCallable implements Callable<ThreadStat> {
       // Get response body
 //      System.out.println(response.body().string());
     } catch (IOException e) {
-      logger.info(e);
+//      logger.info(e);
       return false;
     }
+  }
+
+  private boolean sendGetRequest(String url) {
+    Request request = new Request.Builder()
+        .url(url)
+//        .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
+//        .addHeader("Host", this.info.getIpAddress())
+//        .addHeader("Accept-Encoding", "gzip, deflate")
+//        .addHeader("Accept", "application/json")
+//        .addHeader("Connection", "keep-alive")
+//        .addHeader("Content-Type", "application/json;charset=UTF-8")
+        .build();
+
+    long startTime = System.currentTimeMillis();
+    try (Response response = httpClient.newCall(request).execute()) {
+      statList.add(new LatencyStat(response.code(), RequestType.GET, startTime, System.currentTimeMillis() - startTime));
+      return true;
+    } catch (IOException e) {
+//      logger.info(e);
+      return false;
+    }
+  }
+
+  private String buildSqlStmt(int resortId, int seasonId, int dayId, int skierId) {
+    StringBuilder sb = new StringBuilder(this.apiEndpoint)
+        .append("skiers/")
+        .append(resortId)
+        .append("/seasons/")
+        .append(seasonId)
+        .append("/days/")
+        .append(dayId)
+        .append("/skiers/")
+        .append(skierId);
+    return sb.toString();
   }
 
 //  public static void sleep(long time) {

@@ -4,14 +4,12 @@ import edu.neu.ccs.cs6650.model.LatencyStat;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.Collections;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
-import javafx.util.Pair;
-import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
+import org.apache.commons.math3.stat.descriptive.rank.Percentile;
 
 public class Util {
 

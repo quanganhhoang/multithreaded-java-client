@@ -8,9 +8,9 @@ import edu.neu.ccs.cs6650.model.ThreadStat;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -45,11 +45,8 @@ public class RequestCallable implements Callable<ThreadStat> {
   }
 
   @Override
-  public ThreadStat call() throws ExecutionException, InterruptedException {
+  public ThreadStat call() {
     int rangeIdStart = info.getStartSkierId(), rangeIdEnd = info.getEndSkierId();
-//    System.out.println("startId: " + rangeIdStart);
-//    System.out.println("endId: " + rangeIdEnd);
-//    System.out.println("num requests: " + info.getNumRequest());
 
     int resortId = 1;
     int seasonId = 2019;

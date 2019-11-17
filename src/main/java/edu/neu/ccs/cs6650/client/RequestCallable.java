@@ -19,6 +19,13 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.LogManager;
 
@@ -60,7 +67,7 @@ public class RequestCallable implements Callable<ThreadStat> {
       int time = info.getStartTime() + ThreadLocalRandom.current().nextInt(info.getEndTime() - info.getStartTime());
 
       String url = buildSqlStmt(resortId, seasonId, dayId, skierId);
-      if (sendPostRequest(url, time, liftId)) {
+      if (sendPostApache(url, time, liftId)) {
         totalNumRequestSent++;
       } else {
         totalFailures++;
@@ -68,7 +75,7 @@ public class RequestCallable implements Callable<ThreadStat> {
 
       // only applies to phase 3
       if (this.info.getPhase() == 3) {
-        if (sendGetRequest(url)) {
+        if (sendGetApache(url)) {
           totalNumRequestSent++;
         } else {
           totalFailures++;
@@ -113,6 +120,42 @@ public class RequestCallable implements Callable<ThreadStat> {
 //      logger.info(e);
       return false;
     }
+  }
+
+  private boolean sendPostApache(String url, int time, int liftId) {
+    HttpPost post = new HttpPost(url);
+    post.addHeader("Accept", "application/json");
+    String json = "{\"time\":" + time + ",\"liftID\":\"" + liftId + "\"}";
+
+    StringEntity requestEntity = new StringEntity(json, ContentType.APPLICATION_JSON);
+    post.setEntity(requestEntity);
+
+    long startTime = System.currentTimeMillis();
+    try (CloseableHttpClient httpClient = HttpClients.createDefault();
+         CloseableHttpResponse response = httpClient.execute(post)) {
+
+      statList.add(new LatencyStat(response.getStatusLine().getStatusCode(), RequestType.POST, startTime, System.currentTimeMillis() - startTime));
+      return true;
+    } catch (IOException e) {
+      System.out.println(e);
+      return false;
+    }
+  }
+
+  private boolean sendGetApache(String url) {
+    HttpGet request = new HttpGet(url);
+
+    long startTime = System.currentTimeMillis();
+    try (CloseableHttpClient httpClient = HttpClients.createDefault();
+         CloseableHttpResponse response = httpClient.execute(request)) {
+
+      statList.add(new LatencyStat(response.getStatusLine().getStatusCode(), RequestType.GET, startTime, System.currentTimeMillis() - startTime));
+      return true;
+    } catch (IOException e) {
+      System.out.println(e);
+      return false;
+    }
+
   }
 
   private boolean sendGetRequest(String url) {

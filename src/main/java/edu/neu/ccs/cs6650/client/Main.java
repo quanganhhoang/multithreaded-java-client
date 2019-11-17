@@ -13,9 +13,6 @@ import org.apache.logging.log4j.LogManager;
 public class Main {
   private static final Logger logger = LogManager.getLogger(Main.class.getName());
 
-  private static final boolean IS_LOCAL = false;
-  private static final boolean LOAD_BALANCER_USED = true;
-
   private static final String AWS_API_ENDPOINT = "ec2-35-155-214-112.us-west-2.compute.amazonaws.com";
   private static final String GCP_API_ENDPOINT = "java-servlet-example.appspot.com";
   private static final String AWS_LB_ENDPOINT = "cs6650-loadbalancer-1302090979.us-west-2.elb.amazonaws.com";
@@ -26,16 +23,16 @@ public class Main {
 
   public static void main(String[] args) {
 //    System.setProperty("java.net.preferIPv4Stack", "true");
-    Integer numThreads = 128; // max = 256
+    Integer numThreads = 256; // max = 256
     Integer numSkiers = 20000; // effectively the skier's ID | max = 50000
     Integer numSkiLifts = 40; // default 40, range 5-60
     Integer numRuns = 20; // numRuns: default 10, max 20
 
     // One load balancer over 4 EC2 setup
-    String ipAddress = IS_LOCAL ?
-        "localhost" : LOAD_BALANCER_USED ? AWS_LB_ENDPOINT
-                                         : AWS_API_ENDPOINT;
-    String port = LOAD_BALANCER_USED ? "80" : "8080";
+    String ipAddress = Config.IS_LOCAL ? "localhost"
+                                       : Config.IS_LOAD_BALANCED ? (Config.IS_AWS ? AWS_LB_ENDPOINT : GCP_API_ENDPOINT)
+                                                                 : AWS_API_ENDPOINT;
+    String port = Config.IS_LOAD_BALANCED ? "80" : "8080";
 
     // TODO: Validate command line arguments here
     if (args.length != 0 && validateInput(args)) {

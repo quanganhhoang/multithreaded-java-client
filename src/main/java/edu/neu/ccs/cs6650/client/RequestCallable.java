@@ -24,24 +24,24 @@ import org.apache.logging.log4j.LogManager;
 
 public class RequestCallable implements Callable<ThreadStat> {
 //  private static final Logger logger = LogManager.getLogger(RequestCallable.class.getName());
-  private static final boolean IS_AWS = true;
   private String apiEndpoint;
   private ThreadInfo info;
   private CountDownLatch countDownLatch;
   private List<LatencyStat> statList;
 
   private final OkHttpClient httpClient = new OkHttpClient.Builder()
-      .connectTimeout(10, TimeUnit.SECONDS)
-      .readTimeout(5, TimeUnit.SECONDS)
-      .retryOnConnectionFailure(false).build();
+      .connectTimeout(Config.CONNECT_TIMEOUT, TimeUnit.SECONDS)
+      .readTimeout(Config.READ_TIMEOUT, TimeUnit.SECONDS)
+//      .retryOnConnectionFailure(false)
+      .build();
 
   public RequestCallable(ThreadInfo info, CountDownLatch countDownLatch) {
     this.info = info;
     this.countDownLatch = countDownLatch;
     this.statList = new ArrayList<>();
-    this.apiEndpoint = (IS_AWS ? "http://" : "https://")
+    this.apiEndpoint = (Config.IS_AWS ? "http://" : "https://")
         + this.info.getIpAddress()
-        + (IS_AWS ? ":" + this.info.getPort() + "/skier-api/" : "/");
+        + (Config.IS_AWS ? ":" + this.info.getPort() + "/skier-api/" : "/");
   }
 
   @Override
@@ -60,7 +60,6 @@ public class RequestCallable implements Callable<ThreadStat> {
       int time = info.getStartTime() + ThreadLocalRandom.current().nextInt(info.getEndTime() - info.getStartTime());
 
       String url = buildSqlStmt(resortId, seasonId, dayId, skierId);
-
       if (sendPostRequest(url, time, liftId)) {
         totalNumRequestSent++;
       } else {

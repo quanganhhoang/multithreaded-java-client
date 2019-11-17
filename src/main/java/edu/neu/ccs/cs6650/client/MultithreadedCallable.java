@@ -24,7 +24,6 @@ public class MultithreadedCallable {
   private static final Logger logger = LogManager.getLogger(Main.class.getName());
 
   private static final int MAX_TERMINATION_WAIT_TIME = 20;    // seconds
-  private static final int MAX_THREAD_POOL = 256;
 
   private static final int PHASE1_START_TIME = 1;
   private static final int PHASE1_END_TIME = 90;
@@ -45,7 +44,7 @@ public class MultithreadedCallable {
   private long totalRequestFail;
   private List<LatencyStat> latencyStats = new ArrayList<>();
 
-  private ExecutorService executor = Executors.newFixedThreadPool(MAX_THREAD_POOL);
+  private ExecutorService executor = Executors.newFixedThreadPool(Config.MAX_THREAD_POOL);
   private CompletionService<ThreadStat> completionService = new ExecutorCompletionService<>(executor);
   private CountDownLatch countDownLatch;
 
@@ -81,6 +80,7 @@ public class MultithreadedCallable {
 
   private void retrieveResult(CompletionService cs) {
     int n = getNumThreads(0); // get total number of threads submitted
+    logger.info("Retrieving results from " + n + " threads...");
     try {
       for (int i = 0; i < n; i++) {
         Future f = cs.take();
@@ -171,7 +171,7 @@ public class MultithreadedCallable {
       case 2:
         return numThreads;
       case 0:
-        return getNumThreads(1) + getNumThreads(2) + getNumThreads(3);
+        return numThreads * 3 / 2;
       default:
         return 0;
     }

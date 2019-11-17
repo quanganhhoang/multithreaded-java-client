@@ -70,12 +70,12 @@ public class Main {
     List<LatencyStat> latencyStats = Util.adjustLatencyStartTime(client.getLatencyStats(), (long) sw.getStartTime());
     latencyStats.sort(Comparator.comparingLong(LatencyStat::getStartTime));
 
-    try {
-      Util.writeToCSV(latencyStats, CSV_PATH);
-      logger.info("Results written to CSV!\n");
-    } catch (IOException e) {
-      logger.info("ERROR: IOException writing to file.");
-    }
+//    try {
+//      Util.writeToCSV(latencyStats, CSV_PATH);
+//      logger.info("Results written to CSV!\n");
+//    } catch (IOException e) {
+//      logger.info("ERROR: IOException writing to file.");
+//    }
 
     logger.info("============= STATS =================");
     logger.info("Mean response time: " + Util.findMeanResponseTime(latencyStats)  + " ms");

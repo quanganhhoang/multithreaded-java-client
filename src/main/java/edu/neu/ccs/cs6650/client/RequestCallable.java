@@ -93,8 +93,8 @@ public class RequestCallable implements Callable<ThreadStat> {
 //        .addHeader("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/77.0.3865.90 Safari/537.36")
 //        .addHeader("Host", this.info.getIpAddress())
 //        .addHeader("Accept-Encoding", "gzip, deflate")
-        .addHeader("Accept", "application/json")
-        .addHeader("Connection", "keep-alive")
+//        .addHeader("Accept", "application/json")
+//        .addHeader("Connection", "keep-alive")
 //        .addHeader("Content-Type", "application/json;charset=UTF-8")
         .build();
 

@@ -23,7 +23,7 @@ import org.apache.logging.log4j.Logger;
 public class MultithreadedCallable {
   private static final Logger logger = LogManager.getLogger(Main.class.getName());
 
-  private static final int MAX_TERMINATION_WAIT_TIME = 10;    // seconds
+  private static final int MAX_TERMINATION_WAIT_TIME = 5;    // seconds
 
   private static final int PHASE1_START_TIME = 1;
   private static final int PHASE1_END_TIME = 90;
@@ -81,6 +81,7 @@ public class MultithreadedCallable {
   private void retrieveResult(CompletionService cs) {
     int n = getNumThreads(0); // get total number of threads submitted
     logger.info("Retrieving results from " + n + " threads...");
+
     try {
       for (int i = 0; i < n; i++) {
         Future f = cs.take();
